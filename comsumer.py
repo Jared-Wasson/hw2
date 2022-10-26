@@ -1,10 +1,12 @@
+import logging
 from time import sleep
 import boto3
 import json
 import os
 import sys
 
-#command line stuff
+logging.basicConfig(filename="logfilename.log", level=logging.INFO)
+#command line
 thirdParam = ""
 if len(sys.argv) > 2:
     print('You have specified too many arguments')
@@ -17,8 +19,10 @@ if len(sys.argv) == 1:
 if len(sys.argv) == 2:
     if (sys.argv[1] == 's3'):
         thirdParam = sys.argv[1]
+        logging.info('set to send to s3')
     elif (sys.argv[1] == 'dynamo'):
         thirdParam = sys.argv[1]
+        logging.info('set to send to dynamo')
     else:
         print("enter s3 or dynamo as third parameter")
         sys.exit()
@@ -43,17 +47,20 @@ def checkForWidgetRequests():
             key = file
 
     if(len(widgetsInBucket)):
+        logging.info('widget key sent to get processed')
         return(key)
     else:
         return None
 
 def deleteWidgetRequests(widgetKey):
     s3.Object('jared-blue-bucket-2', widgetKey).delete()
+    logging.info('widget request sucessfully deleted')
 
 def createS3(json, widgetKey):
-    if((not 'owner' in dict) or (not 'widgetId' in dict)):
-        return
+    # if((not json['owner']) or (not json['widgetId'])):
+    #     return
     s3.Object('jared-blue-bucket-3', 'widgets/' + json['owner'] + '/' + json['widgetId']).put()
+    logging.info('widget sucessfully put in s3 bucket 3')
 
 def createDynamo(json):
     table = dynamodb.Table('myTable')
@@ -68,13 +75,9 @@ def createDynamo(json):
                     item[x] = json['otherAttributes'][j][x]
         else:
             item[i] = json[i]
-    
-    
-    print(json['otherAttributes'][0])
 
     table.put_item(Item=item)
-    print()
-
+    logging.info('widget sucessfully put in dynamo table')
 
 def widgetGetRequest(widgetKey):
     if (widgetKey == None):
@@ -95,12 +98,13 @@ def widgetGetRequest(widgetKey):
 
 
 def main():
-    while True:
-        print('got here lol')
-        sleep(.1)
+    value = 100
+    while value != 0:
+        value -1
+        sleep(1)
         try:
             widgetGetRequest(checkForWidgetRequests())
         except:
-             print("An exception occurred")
+            print('error occured')
 
 main()
