@@ -5,29 +5,6 @@ import json
 import os
 import sys
 
-logging.basicConfig(filename="logfilename.log", level=logging.INFO)
-#command line
-thirdParam = ""
-if len(sys.argv) > 2:
-    print('You have specified too many arguments')
-    sys.exit()
-
-if len(sys.argv) == 1:
-    print('You have specified too few arguments')
-    sys.exit()
-
-if len(sys.argv) == 2:
-    if (sys.argv[1] == 's3'):
-        thirdParam = sys.argv[1]
-        logging.info('set to send to s3')
-    elif (sys.argv[1] == 'dynamo'):
-        thirdParam = sys.argv[1]
-        logging.info('set to send to dynamo')
-    else:
-        print("enter s3 or dynamo as third parameter")
-        sys.exit()
-
-
 s3Client = boto3.client('s3')
 s3 = boto3.resource('s3')
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
@@ -95,16 +72,3 @@ def widgetGetRequest(widgetKey):
                 createS3(obj, widgetKey)
             else: 
                 createDynamo(obj)
-
-
-def main():
-    value = 100
-    while value != 0:
-        value = value -1
-        sleep(.1)
-        try:
-            widgetGetRequest(checkForWidgetRequests())
-        except:
-            print('error occured')
-
-main()
