@@ -8,7 +8,8 @@ import sys
 logging.basicConfig(filename="logfilename.log", level=logging.INFO)
 #command line
 thirdParam = ""
-if len(sys.argv) > 2:
+pullFromS3 = True
+if len(sys.argv) > 3:
     print('You have specified too many arguments')
     sys.exit()
 
@@ -16,7 +17,7 @@ if len(sys.argv) == 1:
     print('You have specified too few arguments')
     sys.exit()
 
-if len(sys.argv) == 2:
+if len(sys.argv) == 3:
     if (sys.argv[1] == 's3'):
         thirdParam = sys.argv[1]
         logging.info('set to send to s3')
@@ -27,30 +28,64 @@ if len(sys.argv) == 2:
         print("enter s3 or dynamo as third parameter")
         sys.exit()
 
+if len(sys.argv) == 3:
+    if(sys.argv[2] == 'cs5260-requests'):
+        pullFromS3 = False
+        logging.info('pulling from cs5260-requests')
+
+
 
 s3Client = boto3.client('s3')
 s3 = boto3.resource('s3')
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+sqs = boto3.client('sqs', region_name='us-east-1')
+queue_url = 'https://sqs.us-east-1.amazonaws.com/514149339831/cs5260-requests'
 
 my_bucket2 = s3.Bucket('jared-blue-bucket-2')
 
 def checkForWidgetRequests():
-    widgetsInBucket = []
-    key = ""
-    for file in my_bucket2.objects.all():
-        widgetsInBucket.append(file.key)
+    if (pullFromS3):
+        widgetsInBucket = []
+        key = ""
+        for file in my_bucket2.objects.all():
+            widgetsInBucket.append(file.key)
 
-    for file in widgetsInBucket:
-        if (key == ""):
-            key = file
-        if (file < key):
-            key = file
+        for file in widgetsInBucket:
+            if (key == ""):
+                key = file
+            if (file < key):
+                key = file
 
-    if(len(widgetsInBucket)):
-        logging.info('widget key sent to get processed')
-        return(key)
+        if(len(widgetsInBucket)):
+            logging.info('widget key sent to get processed')
+            return(key)
+        else:
+            return None
     else:
-        return None
+        #pull from queue
+        response = sqs.receive_message(
+            QueueUrl=queue_url,
+            AttributeNames=[
+                'SentTimestamp'
+            ],
+            MaxNumberOfMessages=1,
+            MessageAttributeNames=[
+                'All'
+            ],
+            VisibilityTimeout=0,
+            WaitTimeSeconds=0
+        )
+
+        message = response['Messages'][0]
+        receipt_handle = message['ReceiptHandle']
+
+        # Delete received message from queue
+        sqs.delete_message(
+            QueueUrl=queue_url,
+            ReceiptHandle=receipt_handle
+        )
+        return message
+
 
 def deleteWidgetRequests(widgetKey):
     s3.Object('jared-blue-bucket-2', widgetKey).delete()
@@ -79,7 +114,7 @@ def createDynamo(json):
     table.put_item(Item=item)
     logging.info('widget sucessfully put in dynamo table')
 
-def widgetGetRequest(widgetKey):
+def widgetGetRequestS3(widgetKey):
     if (widgetKey == None):
         return
     s3Client.download_file('jared-blue-bucket-2', widgetKey, './' + widgetKey + '.json')
@@ -96,15 +131,27 @@ def widgetGetRequest(widgetKey):
             else: 
                 createDynamo(obj)
 
+def widgetGetRequestSQS(message):
+    dict_json = json.loads(message['Body'])
+    if( dict_json['type']):
+        if( dict_json['type'] == 'create'):
+            if(thirdParam == "s3"):
+                createS3( dict_json, 0)
+            else: 
+                createDynamo( dict_json)
 
 def main():
-    value = 100
-    while value != 0:
-        value = value -1
-        sleep(.1)
-        try:
-            widgetGetRequest(checkForWidgetRequests())
-        except:
-            print('error occured')
+    # value = 100
+    # while value != 0:
+    #     value = value -1
+    #     sleep(.1)
+    #     try:
+    #         widgetGetRequest(checkForWidgetRequests())
+    #     except:
+    #         print('error occured')
+    if(pullFromS3):
+        widgetGetRequestS3(checkForWidgetRequests())
+    else:
+        widgetGetRequestSQS(checkForWidgetRequests())
 
 main()
