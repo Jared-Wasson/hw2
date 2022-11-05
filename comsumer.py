@@ -17,7 +17,7 @@ if len(sys.argv) == 1:
     print('You have specified too few arguments')
     sys.exit()
 
-if len(sys.argv) == 3:
+if len(sys.argv) == 2:
     if (sys.argv[1] == 's3'):
         thirdParam = sys.argv[1]
         logging.info('set to send to s3')
@@ -91,11 +91,16 @@ def deleteWidgetRequests(widgetKey):
     s3.Object('jared-blue-bucket-2', widgetKey).delete()
     logging.info('widget request sucessfully deleted')
 
-def createS3(json, widgetKey):
+def createS3(jsons, widgetKey):
     # if((not json['owner']) or (not json['widgetId'])):
     #     return
-    s3.Object('jared-blue-bucket-3', 'widgets/' + json['owner'] + '/' + json['widgetId']).put()
+    s3.Object('jared-blue-bucket-3', 'widgets/' + jsons['owner'] + '/' + jsons['widgetId']).put(Body=json.dumps(jsons))
     logging.info('widget sucessfully put in s3 bucket 3')
+
+
+def deleteS3(json, widgetKey):
+    s3.Object('jared-blue-bucket-3', 'widgets/' + json['owner'] + '/' + json['widgetId']).delete()
+
 
 def createDynamo(json):
     table = dynamodb.Table('myTable')
@@ -114,6 +119,31 @@ def createDynamo(json):
     table.put_item(Item=item)
     logging.info('widget sucessfully put in dynamo table')
 
+def deleteDynamo(json ,widgetKey):
+    table = dynamodb.Table('myTable')
+    table.delete_item(Key={'widgetId': json['widgetId']})
+
+def updateDynamo(jsons):
+    data = jsons
+    table = dynamodb.Table('myTable')
+    del data['type']
+    del data['owner']
+    widgetId = data['widgetId']
+    del data['widgetId']
+    updateExpression = ['set ']
+    updateAttributeValues = dict()
+    for key, value in data.items():
+        updateExpression.append(f" {key} = :{key},")
+        updateAttributeValues[f":{key}"] = value
+
+    expression, values =  "".join(updateExpression)[:-1], updateAttributeValues
+
+    table.update_item(
+        Key = {'widgetId': widgetId},
+        UpdateExpression = expression,
+        ExpressionAttributeValues = values
+    )
+
 def widgetGetRequestS3(widgetKey):
     if (widgetKey == None):
         return
@@ -130,6 +160,17 @@ def widgetGetRequestS3(widgetKey):
                 createS3(obj, widgetKey)
             else: 
                 createDynamo(obj)
+        elif (obj['type'] == 'delete'):
+            if(thirdParam == "s3"):
+                deleteS3(obj, widgetKey)
+            else:
+                deleteDynamo(obj, widgetKey)
+
+        elif (obj['type'] == 'update'):
+            if(thirdParam == "s3"):
+                createS3(obj, widgetKey)
+            else:
+                updateDynamo(obj)
 
 def widgetGetRequestSQS(message):
     dict_json = json.loads(message['Body'])
