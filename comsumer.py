@@ -180,6 +180,17 @@ def widgetGetRequestSQS(message):
                 createS3( dict_json, 0)
             else: 
                 createDynamo( dict_json)
+        elif (dict_json['type'] == 'delete'):
+            if(thirdParam == "s3"):
+                deleteS3(dict_json, 0)
+            else:
+                deleteDynamo(dict_json, 0)
+
+        elif (dict_json['type'] == 'update'):
+            if(thirdParam == "s3"):
+                createS3(dict_json,0)
+            else:
+                updateDynamo(dict_json)
 
 def main():
     # value = 100
