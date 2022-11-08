@@ -17,7 +17,7 @@ if len(sys.argv) == 1:
     print('You have specified too few arguments')
     sys.exit()
 
-if len(sys.argv) == 2:
+if len(sys.argv) == 2 or len(sys.argv) == 3:
     if (sys.argv[1] == 's3'):
         thirdParam = sys.argv[1]
         logging.info('set to send to s3')
@@ -84,6 +84,8 @@ def checkForWidgetRequests():
             QueueUrl=queue_url,
             ReceiptHandle=receipt_handle
         )
+        logging.info('sqs message deleted')
+        logging.info('widget key sent to get processed')
         return message
 
 
@@ -98,8 +100,9 @@ def createS3(jsons, widgetKey):
     logging.info('widget sucessfully put in s3 bucket 3')
 
 
-def deleteS3(json, widgetKey):
-    s3.Object('jared-blue-bucket-3', 'widgets/' + json['owner'] + '/' + json['widgetId']).delete()
+def deleteS3(jsons, widgetKey):
+    s3.Object('jared-blue-bucket-3', 'widgets/' + jsons['owner'] + '/' + jsons['widgetId']).delete()
+    logging.info('widget successfully deleted from s3 bucket 3')
 
 
 def createDynamo(json):
@@ -122,6 +125,7 @@ def createDynamo(json):
 def deleteDynamo(json ,widgetKey):
     table = dynamodb.Table('myTable')
     table.delete_item(Key={'widgetId': json['widgetId']})
+    logging.info('widget successfully deleted from dynamo')
 
 def updateDynamo(jsons):
     data = jsons
@@ -143,6 +147,7 @@ def updateDynamo(jsons):
         UpdateExpression = expression,
         ExpressionAttributeValues = values
     )
+    logging.info('widget successfully updated in dynamo')
 
 def widgetGetRequestS3(widgetKey):
     if (widgetKey == None):
@@ -173,8 +178,10 @@ def widgetGetRequestS3(widgetKey):
                 updateDynamo(obj)
 
 def widgetGetRequestSQS(message):
+    print('got here')
     dict_json = json.loads(message['Body'])
     if( dict_json['type']):
+        print(dict_json['type'])
         if( dict_json['type'] == 'create'):
             if(thirdParam == "s3"):
                 createS3( dict_json, 0)
@@ -182,6 +189,7 @@ def widgetGetRequestSQS(message):
                 createDynamo( dict_json)
         elif (dict_json['type'] == 'delete'):
             if(thirdParam == "s3"):
+                print('delete s3')
                 deleteS3(dict_json, 0)
             else:
                 deleteDynamo(dict_json, 0)
@@ -193,17 +201,23 @@ def widgetGetRequestSQS(message):
                 updateDynamo(dict_json)
 
 def main():
-    # value = 100
-    # while value != 0:
-    #     value = value -1
-    #     sleep(.1)
-    #     try:
-    #         widgetGetRequest(checkForWidgetRequests())
-    #     except:
-    #         print('error occured')
-    if(pullFromS3):
-        widgetGetRequestS3(checkForWidgetRequests())
-    else:
-        widgetGetRequestSQS(checkForWidgetRequests())
+    value = 100
+    while value != 0:
+        value = value -1
+        sleep(.1)
+        try:
+            if(pullFromS3):
+                widgetGetRequestS3(checkForWidgetRequests())
+            else:
+                widgetGetRequestSQS(checkForWidgetRequests())
+        except:
+            print('error occured')
+
+
+
+    # if(pullFromS3):
+    #     widgetGetRequestS3(checkForWidgetRequests())
+    # else:
+    #     widgetGetRequestSQS(checkForWidgetRequests())
 
 main()

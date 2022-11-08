@@ -72,3 +72,14 @@ def widgetGetRequest(widgetKey):
                 createS3(obj, widgetKey)
             else: 
                 createDynamo(obj)
+
+
+def deleteS3(jsons, widgetKey):
+    s3.Object('jared-blue-bucket-3', 'widgets/' + jsons['owner'] + '/' + jsons['widgetId']).delete()
+
+
+def deleteDynamo(json ,widgetKey):
+    table = dynamodb.Table('myTable')
+    table.delete_item(Key={'widgetId': json['widgetId']})
+
+
