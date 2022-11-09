@@ -58,6 +58,7 @@ def checkForWidgetRequests():
 
         if(len(widgetsInBucket)):
             logging.info('widget key sent to get processed')
+            print('widget key sent to get processed')
             return(key)
         else:
             return None
@@ -86,23 +87,28 @@ def checkForWidgetRequests():
         )
         logging.info('sqs message deleted')
         logging.info('widget key sent to get processed')
+        print('sqs message deleted')
+        print('widget key sent to get processed')
         return message
 
 
 def deleteWidgetRequests(widgetKey):
     s3.Object('jared-blue-bucket-2', widgetKey).delete()
     logging.info('widget request sucessfully deleted')
+    print('widget request sucessfully deleted')
 
 def createS3(jsons, widgetKey):
     # if((not json['owner']) or (not json['widgetId'])):
     #     return
     s3.Object('jared-blue-bucket-3', 'widgets/' + jsons['owner'] + '/' + jsons['widgetId']).put(Body=json.dumps(jsons))
     logging.info('widget sucessfully put in s3 bucket 3')
+    print('widget sucessfully put in s3 bucket 3')
 
 
 def deleteS3(jsons, widgetKey):
     s3.Object('jared-blue-bucket-3', 'widgets/' + jsons['owner'] + '/' + jsons['widgetId']).delete()
     logging.info('widget successfully deleted from s3 bucket 3')
+    print('widget successfully deleted from s3 bucket 3')
 
 
 def createDynamo(json):
@@ -121,11 +127,13 @@ def createDynamo(json):
 
     table.put_item(Item=item)
     logging.info('widget sucessfully put in dynamo table')
+    print('widget sucessfully put in dynamo table')
 
 def deleteDynamo(json ,widgetKey):
     table = dynamodb.Table('myTable')
     table.delete_item(Key={'widgetId': json['widgetId']})
     logging.info('widget successfully deleted from dynamo')
+    print('widget successfully deleted from dynamo')
 
 def updateDynamo(jsons):
     data = jsons
@@ -148,6 +156,7 @@ def updateDynamo(jsons):
         ExpressionAttributeValues = values
     )
     logging.info('widget successfully updated in dynamo')
+    print('widget successfully updated in dynamo')
 
 def widgetGetRequestS3(widgetKey):
     if (widgetKey == None):
@@ -178,10 +187,8 @@ def widgetGetRequestS3(widgetKey):
                 updateDynamo(obj)
 
 def widgetGetRequestSQS(message):
-    print('got here')
     dict_json = json.loads(message['Body'])
     if( dict_json['type']):
-        print(dict_json['type'])
         if( dict_json['type'] == 'create'):
             if(thirdParam == "s3"):
                 createS3( dict_json, 0)
@@ -189,7 +196,6 @@ def widgetGetRequestSQS(message):
                 createDynamo( dict_json)
         elif (dict_json['type'] == 'delete'):
             if(thirdParam == "s3"):
-                print('delete s3')
                 deleteS3(dict_json, 0)
             else:
                 deleteDynamo(dict_json, 0)
@@ -211,7 +217,7 @@ def main():
             else:
                 widgetGetRequestSQS(checkForWidgetRequests())
         except:
-            print('error occured')
+            logging.info('error occurred')
 
 
 

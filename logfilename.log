@@ -491,3 +491,25 @@ INFO:botocore.credentials:Found credentials in shared credentials file: ~/.aws/c
 INFO:root:set to send to s3
 INFO:root:pulling from cs5260-requests
 INFO:botocore.credentials:Found credentials in shared credentials file: ~/.aws/credentials
+INFO:root:set to send to s3
+INFO:botocore.credentials:Found credentials in shared credentials file: ~/.aws/credentials
+INFO:root:widget key sent to get processed
+INFO:root:widget request sucessfully deleted
+INFO:root:widget sucessfully put in s3 bucket 3
+INFO:root:set to send to dynamo
+INFO:root:pulling from cs5260-requests
+INFO:botocore.credentials:Found credentials in shared credentials file: ~/.aws/credentials
+INFO:root:sqs message deleted
+INFO:root:widget key sent to get processed
+INFO:root:widget sucessfully put in dynamo table
+INFO:root:set to send to s3
+INFO:botocore.credentials:Found credentials in shared credentials file: ~/.aws/credentials
+INFO:root:widget key sent to get processed
+INFO:root:widget request sucessfully deleted
+INFO:root:widget sucessfully put in s3 bucket 3
+INFO:root:set to send to dynamo
+INFO:root:pulling from cs5260-requests
+INFO:botocore.credentials:Found credentials in shared credentials file: ~/.aws/credentials
+INFO:root:sqs message deleted
+INFO:root:widget key sent to get processed
+INFO:root:widget sucessfully put in dynamo table
